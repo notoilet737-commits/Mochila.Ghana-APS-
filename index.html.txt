@@ -1,0 +1,151 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Una mochila hacia Ghana</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#142437;color:#f1f5f9;font-family:Arial,sans-serif}
+main{max-width:950px;margin:auto;padding:16px}
+h1{font-size:24px;margin:8px 0}
+canvas{width:100%;height:auto;background:#d7e0e8;border-radius:12px}
+.panel{background:#23364b;padding:16px;border-radius:12px;margin-top:12px}
+h2{font-size:19px;color:#a8d9ff}
+button{display:block;width:100%;padding:11px;margin:7px 0;
+background:#36536e;color:white;border:1px solid #6f8da7;
+border-radius:8px;font-size:15px;cursor:pointer;text-align:left}
+button:hover{background:#4b6d8d}
+#inv{font-size:14px;color:#d4e4f5;line-height:1.6}
+</style>
+</head>
+<body>
+<main>
+<h1>Una mochila desde Cartagena hacia Ghana</h1>
+<p>APS · Maristas Cartagena</p>
+<canvas id="mapa" width="900" height="420"></canvas>
+<p id="inv"></p>
+<div class="panel">
+<h2 id="nombre">Comienza el proyecto</h2>
+<p id="dialogo">Selecciona un profesor en el mapa o en la lista.</p>
+<div id="opciones"></div>
+</div>
+</main>
+<script>
+const profesores=[
+["Carmen","Francés","Cuadernos","Prepararemos cuadernos para escribir y aprender."],
+["Rebeca","Inglés","Lápices","Revisemos que los lápices estén en buen estado."],
+["Patricia","Lengua","Libros","Podemos seleccionar libros apropiados para el proyecto."],
+["Guillamón","Matemáticas","Reglas","Las reglas nos ayudarán a preparar material de geometría."],
+["Antonio","Religión","Reflexión solidaria","La solidaridad empieza por escuchar las necesidades de otras personas."],
+["Ian","Geografía e Historia","Ruta del proyecto","Estudiemos la ruta entre Cartagena y Ghana y cómo organizar la entrega."],
+["María José","Biología y Geología","Material de ciencias","Seleccionemos recursos adecuados para aprender ciencias."],
+["Rocío","Tecnología y Digitalización / Plástica","Material de dibujo","Vamos a reunir materiales de dibujo útiles y en buen estado."],
+["Maricarmen","Educación Física","Material de actividades","Pensemos qué material puede servir para actividades educativas."]
+];
+let inventario=new Set(),actual=-1,finalizado=false;
+const c=document.getElementById("mapa"),ctx=c.getContext("2d");
+const nombre=document.getElementById("nombre");
+const dialogo=document.getElementById("dialogo");
+const opciones=document.getElementById("opciones");
+function boton(t,f){
+ let b=document.createElement("button");
+ b.textContent=t;b.onclick=f;opciones.appendChild(b);
+}
+function personaje(x,y,i){
+ let g=ctx.createRadialGradient(x-7,y-28,2,x,y-20,28);
+ g.addColorStop(0,"#fff0d6");g.addColorStop(1,"#a76d4b");
+ ctx.fillStyle=g;ctx.beginPath();
+ ctx.ellipse(x,y-20,22,25,0,0,Math.PI*2);ctx.fill();
+ let b=ctx.createLinearGradient(x-25,y,x+25,y);
+ b.addColorStop(0,"#243c59");b.addColorStop(.5,"#779ec1");
+ b.addColorStop(1,"#263d59");
+ ctx.fillStyle=b;ctx.beginPath();
+ ctx.roundRect(x-25,y+4,50,45,12);ctx.fill();
+ ctx.fillStyle="#263442";
+ ctx.fillRect(x-19,y+49,14,24);
+ ctx.fillRect(x+5,y+49,14,24);
+ ctx.fillStyle="#172536";ctx.font="bold 13px Arial";
+ ctx.textAlign="center";ctx.fillText(profesores[i][0],x,y+90);
+}
+function mapa(){
+ ctx.fillStyle="#dbe5e8";ctx.fillRect(0,0,900,420);
+ ctx.fillStyle="#bacbd5";ctx.fillRect(0,185,900,50);
+ ctx.fillStyle="#8199ad";ctx.fillRect(0,0,900,32);
+ ctx.fillStyle="white";ctx.font="bold 16px Arial";
+ ctx.textAlign="left";
+ ctx.fillText("Colegio · Recorre las aulas",15,22);
+ profesores.forEach((p,i)=>{
+ let x=100+(i%5)*175,y=65+Math.floor(i/5)*205;
+ ctx.fillStyle="#f1f5f9";ctx.fillRect(x-70,y-10,140,130);
+ ctx.fillStyle="#9fb4c5";ctx.fillRect(x-58,y,116,8);
+ personaje(x,y+20,i);
+ if(inventario.has(i)){
+ ctx.fillStyle="#176b45";ctx.fillText("✓",x+40,y+15);
+ }
+ });
+ document.getElementById("inv").textContent=
+ "Mochila y tareas: "+inventario.size+" de "+profesores.length+
+ " · "+[...inventario].map(i=>profesores[i][2]).join(", ");
+}
+function menu(){
+ if(finalizado)return;
+ actual=-1;mapa();nombre.textContent="Recorrido por el colegio";
+ dialogo.textContent="Elige con quién hablar. Los materiales y tareas se guardarán en la mochila del proyecto.";
+ opciones.replaceChildren();
+ profesores.forEach((p,i)=>{
+ boton((inventario.has(i)?"✓ ":"")+p[0]+" · "+p[1],()=>hablar(i));
+ });
+ boton("Preparar la entrega del proyecto",entrega);
+}
+function hablar(i){
+ actual=i;let p=profesores[i];mapa();
+ nombre.textContent=p[0]+" · "+p[1];
+ dialogo.textContent=p[3];
+ opciones.replaceChildren();
+ if(inventario.has(i)){
+ dialogo.textContent="Esta tarea ya está completada.";
+ }else{
+ boton("Colaborar y completar la tarea",()=>{
+ inventario.add(i);menu();
+ });
+ boton("Dejar la tarea pendiente y seguir explorando",menu);
+ }
+ boton("Volver al mapa",menu);
+}
+c.onclick=e=>{
+ let r=c.getBoundingClientRect();
+ let x=(e.clientX-r.left)*900/r.width;
+ let y=(e.clientY-r.top)*420/r.height;
+ let col=Math.round((x-100)/175);
+ let row=Math.round((y-130)/205);
+ let i=row*5+col;
+ if(col>=0&&col<5&&row>=0&&row<2&&i<profesores.length)hablar(i);
+};
+function entrega(){
+ mapa();nombre.textContent="Preparación de la entrega";
+ dialogo.textContent="Antes de enviar la mochila, hay que comprobar los materiales, consultar con la organización receptora y confirmar el transporte.";
+ opciones.replaceChildren();
+ boton("Comprobar el estado del proyecto",()=>{
+ finalizado=true;opciones.replaceChildren();
+ let n=inventario.size;
+ if(n===9){
+ nombre.textContent="FINAL 1 · Proyecto completado";
+ dialogo.textContent="Has reunido todos los materiales y tareas. La mochila está preparada para su entrega, pendiente de la confirmación de la organización receptora.";
+ }else if(n>=5){
+ nombre.textContent="FINAL 2 · Proyecto en preparación";
+ dialogo.textContent="Has avanzado mucho, pero faltan "+(9-n)+" tareas. El equipo deberá completarlas antes de organizar la entrega.";
+ }else{
+ nombre.textContent="FINAL 3 · Proyecto por revisar";
+ dialogo.textContent="Faltan demasiados materiales y tareas. El equipo decide revisar el plan y volver a colaborar.";
+ }
+ boton("Reiniciar el proyecto",()=>{
+ inventario.clear();finalizado=false;menu();
+ });
+ });
+ boton("Volver al colegio",menu);
+}
+menu();
+</script>
+</body>
+</html>
